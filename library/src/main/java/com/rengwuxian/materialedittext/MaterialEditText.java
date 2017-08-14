@@ -99,6 +99,11 @@ public class MaterialEditText extends AppCompatEditText {
   private int floatingLabelPadding;
 
   /**
+   * left padding for error text and floatinf label
+   */
+  private int leftPaddingLabel;
+
+  /**
    * the spacing between the main text and the bottom components (bottom ellipsis, helper/error text, characters counter).
    */
   private int bottomSpacing;
@@ -147,6 +152,11 @@ public class MaterialEditText extends AppCompatEditText {
    * the color for when something is wrong.(e.g. exceeding max characters)
    */
   private int errorColor;
+
+  /**
+   * background color
+   */
+  private int backgroundColor;
 
   /**
    * min characters count limit. 0 means no limit. default is 0. NOTE: the character counter will increase the View's height.
@@ -378,6 +388,8 @@ public class MaterialEditText extends AppCompatEditText {
     primaryColor = typedArray.getColor(R.styleable.MaterialEditText_met_primaryColor, defaultPrimaryColor);
     setFloatingLabelInternal(typedArray.getInt(R.styleable.MaterialEditText_met_floatingLabel, 0));
     errorColor = typedArray.getColor(R.styleable.MaterialEditText_met_errorColor, Color.parseColor("#e7492E"));
+    backgroundColor = typedArray.getColor(R.styleable.MaterialEditText_met_backgroundColor,Color.parseColor("#FFFFFF"));
+    leftPaddingLabel = typedArray.getDimensionPixelOffset(R.styleable.MaterialEditText_met_leftPaddingLabel,10);
     minCharacters = typedArray.getInt(R.styleable.MaterialEditText_met_minCharacters, 0);
     maxCharacters = typedArray.getInt(R.styleable.MaterialEditText_met_maxCharacters, 0);
     singleLineEllipsis = typedArray.getBoolean(R.styleable.MaterialEditText_met_singleLineEllipsis, false);
@@ -1276,7 +1288,7 @@ public class MaterialEditText extends AppCompatEditText {
   @Override
   protected void onDraw(@NonNull Canvas canvas) {
 
-    int startX = getScrollX() + (iconLeftBitmaps == null ? 0 : (iconOuterWidth + iconPadding)) + getPaddingLeft();
+    int startX = getScrollX() + (iconLeftBitmaps == null ? 0 : (iconOuterWidth + iconPadding)) ;
     int endX = getScrollX() + (iconRightBitmaps == null ? getWidth() : getWidth() - iconOuterWidth - iconPadding) - getPaddingRight();
     int lineStartY = getScrollY() + getHeight() - getPaddingBottom();
 
@@ -1313,23 +1325,40 @@ public class MaterialEditText extends AppCompatEditText {
     // draw the underline
     if (!hideUnderline) {
       lineStartY += bottomSpacing;
+
       if (!isInternalValid()) { // not valid
         paint.setColor(errorColor);
-        canvas.drawRect(startX, lineStartY, endX, lineStartY + getPixel(2), paint);
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(5.0f);
+//        canvas.drawRect(startX, lineStartY, endX, lineStartY + getPixel(2), paint);
+        canvas.drawRoundRect(startX +2,getScrollY()+2,endX-2,lineStartY+15,10.0f,10.0f,paint);
       } else if (!isEnabled()) { // disabled
         paint.setColor(underlineColor != -1 ? underlineColor : baseColor & 0x00ffffff | 0x44000000);
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(5.0f);
         float interval = getPixel(1);
         for (float xOffset = 0; xOffset < getWidth(); xOffset += interval * 3) {
-          canvas.drawRect(startX + xOffset, lineStartY, startX + xOffset + interval, lineStartY + getPixel(1), paint);
+//          canvas.drawRect(startX + xOffset, lineStartY, startX + xOffset + interval, lineStartY + getPixel(1), paint);
+          canvas.drawRoundRect(startX + xOffset+2,getScrollY()+2,startX -2+ xOffset,lineStartY+15,10.0f,10.0f,paint);
         }
       } else if (hasFocus()) { // focused
         paint.setColor(primaryColor);
-        canvas.drawRect(startX, lineStartY, endX, lineStartY + getPixel(2), paint);
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(5.0f);
+//        canvas.drawRect(startX, lineStartY, endX, lineStartY + getPixel(2), paint);
+        canvas.drawRoundRect(startX+2,getScrollY()+2,endX-2,lineStartY+15,10.0f,10.0f,paint);
       } else { // normal
-        paint.setColor(underlineColor != -1 ? underlineColor : baseColor & 0x00ffffff | 0x1E000000);
-        canvas.drawRect(startX, lineStartY, endX, lineStartY + getPixel(1), paint);
+        paint.setColor(underlineColor != -1 ? underlineColor : baseColor & 0x00ffffff | 0x00000000);
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(5.0f);
+//        canvas.drawRect(startX, lineStartY, endX, lineStartY + getPixel(1), paint);
+        canvas.drawRoundRect(startX+3,getScrollY()+3,endX-3,lineStartY+14,10.0f,10.0f,paint);
       }
     }
+
+    paint.setColor(backgroundColor);
+    paint.setStyle(Paint.Style.FILL);
+    canvas.drawRoundRect(startX+5,getScrollY()+5,endX-5,lineStartY+11,10.0f,10.0f,paint);
 
     textPaint.setTextSize(bottomTextSize);
     Paint.FontMetrics textMetrics = textPaint.getFontMetrics();
@@ -1349,9 +1378,9 @@ public class MaterialEditText extends AppCompatEditText {
         textPaint.setColor(tempErrorText != null ? errorColor : helperTextColor != -1 ? helperTextColor : (baseColor & 0x00ffffff | 0x44000000));
         canvas.save();
         if (isRTL()) {
-          canvas.translate(endX - textLayout.getWidth(), lineStartY + bottomSpacing - bottomTextPadding);
+          canvas.translate(endX - textLayout.getWidth() - leftPaddingLabel, lineStartY + bottomSpacing - bottomTextPadding+10);
         } else {
-          canvas.translate(startX + getBottomTextLeftOffset(), lineStartY + bottomSpacing - bottomTextPadding);
+          canvas.translate(startX + getBottomTextLeftOffset() + leftPaddingLabel, lineStartY + bottomSpacing - bottomTextPadding+10);
         }
         textLayout.draw(canvas);
         canvas.restore();
@@ -1368,40 +1397,41 @@ public class MaterialEditText extends AppCompatEditText {
       float floatingLabelWidth = textPaint.measureText(floatingLabelText.toString());
       int floatingLabelStartX;
       if ((getGravity() & Gravity.RIGHT) == Gravity.RIGHT || isRTL()) {
-        floatingLabelStartX = (int) (endX - floatingLabelWidth);
+        floatingLabelStartX = (int) (endX - floatingLabelWidth)- leftPaddingLabel;
       } else if ((getGravity() & Gravity.LEFT) == Gravity.LEFT) {
-        floatingLabelStartX = startX;
+        floatingLabelStartX = startX + leftPaddingLabel;
       } else {
-        floatingLabelStartX = startX + (int) (getInnerPaddingLeft() + (getWidth() - getInnerPaddingLeft() - getInnerPaddingRight() - floatingLabelWidth) / 2);
+        floatingLabelStartX = startX + (int) (getInnerPaddingLeft() + (getWidth() - getInnerPaddingLeft() - getInnerPaddingRight() - floatingLabelWidth) / 2) + leftPaddingLabel;
       }
 
       // calculate the vertical position
       int distance = floatingLabelPadding;
-      int floatingLabelStartY = (int) (innerPaddingTop + floatingLabelTextSize + floatingLabelPadding - distance * (floatingLabelAlwaysShown ? 1 : floatingLabelFraction) + getScrollY());
+      int floatingLabelStartY = (int) (innerPaddingTop + floatingLabelTextSize + floatingLabelPadding - distance * (floatingLabelAlwaysShown ? 1 : floatingLabelFraction) + getScrollY())+10;
 
       // calculate the alpha
       int alpha = ((int) ((floatingLabelAlwaysShown ? 1 : floatingLabelFraction) * 0xff * (0.74f * focusFraction * (isEnabled() ? 1 : 0) + 0.26f) * (floatingLabelTextColor != -1 ? 1 : Color.alpha(floatingLabelTextColor) / 256f)));
       textPaint.setAlpha(alpha);
+      textPaint.setTextSize(25);
 
       // draw the floating label
-      canvas.drawText(floatingLabelText.toString(), floatingLabelStartX, floatingLabelStartY, textPaint);
+      canvas.drawText(floatingLabelText.toString().toUpperCase(), floatingLabelStartX, floatingLabelStartY , textPaint);
     }
-
-    // draw the bottom ellipsis
-    if (hasFocus() && singleLineEllipsis && getScrollX() != 0) {
-      paint.setColor(isInternalValid() ? primaryColor : errorColor);
-      float startY = lineStartY + bottomSpacing;
-      int ellipsisStartX;
-      if (isRTL()) {
-        ellipsisStartX = endX;
-      } else {
-        ellipsisStartX = startX;
-      }
-      int signum = isRTL() ? -1 : 1;
-      canvas.drawCircle(ellipsisStartX + signum * bottomEllipsisSize / 2, startY + bottomEllipsisSize / 2, bottomEllipsisSize / 2, paint);
-      canvas.drawCircle(ellipsisStartX + signum * bottomEllipsisSize * 5 / 2, startY + bottomEllipsisSize / 2, bottomEllipsisSize / 2, paint);
-      canvas.drawCircle(ellipsisStartX + signum * bottomEllipsisSize * 9 / 2, startY + bottomEllipsisSize / 2, bottomEllipsisSize / 2, paint);
-    }
+//
+//    // draw the bottom ellipsis
+//    if (hasFocus() && singleLineEllipsis && getScrollX() != 0) {
+//      paint.setColor(isInternalValid() ? primaryColor : errorColor);
+//      float startY = lineStartY + bottomSpacing;
+//      int ellipsisStartX;
+//      if (isRTL()) {
+//        ellipsisStartX = endX;
+//      } else {
+//        ellipsisStartX = startX;
+//      }
+//      int signum = isRTL() ? -1 : 1;
+//      canvas.drawCircle(ellipsisStartX + signum * bottomEllipsisSize / 2, startY + bottomEllipsisSize / 2, bottomEllipsisSize / 2, paint);
+//      canvas.drawCircle(ellipsisStartX + signum * bottomEllipsisSize * 5 / 2, startY + bottomEllipsisSize / 2, bottomEllipsisSize / 2, paint);
+//      canvas.drawCircle(ellipsisStartX + signum * bottomEllipsisSize * 9 / 2, startY + bottomEllipsisSize / 2, bottomEllipsisSize / 2, paint);
+//    }
 
     // draw the original things
     super.onDraw(canvas);
